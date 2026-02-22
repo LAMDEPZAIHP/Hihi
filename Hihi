@@ -1,0 +1,281 @@
+-- LÂM MOD FOX VTV V7.5 (HACKER INTRO + PRIVATE CHAT)
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+
+-- [ 1. CHAT RIÊNG TƯ (CLIENT SIDE ONLY) ]
+-- Dòng này dùng SetCore để tạo tin nhắn hệ thống, chỉ mình bạn thấy.
+task.spawn(function()
+    repeat task.wait(1) until pcall(function() return StarterGui:GetCore("ChatMakeSystemMessage") end)
+    StarterGui:SetCore("ChatMakeSystemMessage", {
+        Text = "[SYSTEM]: Script Lâm lựu đạn rizz!!!";
+        Color = Color3.fromRGB(255, 80, 0); -- Màu cam
+        Font = Enum.Font.GothamBlack;
+        TextSize = 20;
+    })
+end)
+
+-- 🔗 WHITELIST CHECK (GIỮ NGUYÊN)
+local WHITELIST_URL = "https://raw.githubusercontent.com/LAMDEPZAIHP/Fox-foxv-whitelish/main/Whitelish_scriptfox"
+local function getWhitelist()
+    local ok, data = pcall(function() return game:HttpGet(WHITELIST_URL) end)
+    if not ok or not data then return {} end
+    local list = {}
+    for line in data:gmatch("[^\r\n]+") do
+        local id = tonumber(line)
+        if id then table.insert(list, id) end
+    end
+    return list
+end
+
+local whitelist = getWhitelist()
+if not table.find(whitelist, LocalPlayer.UserId) then
+    return -- Dừng nếu không có whitelist
+end
+
+-- [ 2. MÀN HÌNH HACKER (INTRO 5 GIÂY) ]
+local function playHackerIntro()
+    local introGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    introGui.IgnoreGuiInset = true
+    introGui.DisplayOrder = 9999
+    
+    local bg = Instance.new("Frame", introGui)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BorderSizePixel = 0
+    
+    local consoleText = Instance.new("TextLabel", bg)
+    consoleText.Size = UDim2.new(1, -20, 1, -20)
+    consoleText.Position = UDim2.new(0, 10, 0, 10)
+    consoleText.BackgroundTransparency = 1
+    consoleText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Màu xanh lá hacker
+    consoleText.Font = Enum.Font.Code
+    consoleText.TextSize = 14
+    consoleText.TextXAlignment = Enum.TextXAlignment.Left
+    consoleText.TextYAlignment = Enum.TextYAlignment.Top
+    consoleText.Text = ""
+    
+    local logs = {
+        "Initializing Lâm Mod Core...",
+        "Bypassing Security Layer 1...",
+        "Injecting 'Lựu Đạn Rizz' module...",
+        "Accessing Mainframe...",
+        "Decrypting User Data...",
+        "Target Found: " .. LocalPlayer.Name,
+        "Connecting to Fox Server...",
+        "Uploading Payload...",
+        "Success! Loading GUI..."
+    }
+    
+    local startTime = tick()
+    
+    -- Chạy hiệu ứng trong 5 giây
+    while tick() - startTime < 5 do
+        -- Tạo mã nhị phân/hex ngẫu nhiên
+        local randomHex = ""
+        for i = 1, 10 do randomHex = randomHex .. string.format("%02X ", math.random(0, 255)) end
+        
+        -- Thêm dòng log ngẫu nhiên hoặc mã hex
+        if math.random() > 0.7 then
+            consoleText.Text = consoleText.Text .. "\n> " .. logs[math.random(1, #logs)]
+        else
+            consoleText.Text = consoleText.Text .. "\n" .. randomHex .. " :: EXEC_Async"
+        end
+        
+        -- Tự động cuộn xuống dưới
+        if #consoleText.Text > 1000 then consoleText.Text = string.sub(consoleText.Text, -500) end
+        
+        task.wait(0.05)
+    end
+    
+    introGui:Destroy()
+end
+
+playHackerIntro() -- CHẠY INTRO
+
+-- ==========================================
+-- [ 3. MENU CHÍNH (SAU KHI INTRO KẾT THÚC) ]
+-- ==========================================
+
+-- [ CẤU HÌNH MÀU SẮC ]
+local THEME_COLOR = Color3.fromRGB(255, 100, 0) -- Màu Cam Chủ Đạo
+local BG_COLOR = Color3.fromRGB(30, 15, 0) -- Màu Nền Tối
+
+-- [ BIẾN ĐIỀU KHIỂN ]
+_G.WalkSpeed = 16
+local noclip, walkFlingActive, tpClickActive = false, false, false
+local treeLagActive, ragdolled, isMinimized = false, false, false
+
+-- [ HÀM UI ]
+local function applyOrangeBorder(instance)
+    local stroke = Instance.new("UIStroke", instance)
+    stroke.Thickness = 2
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    RunService.RenderStepped:Connect(function() 
+        stroke.Color = Color3.fromHSV(tick() % 2 / 2, 1, 1) -- Hiệu ứng cầu vồng nhẹ tông cam
+    end)
+end
+
+local function createBtn(parent, x, y, text, width)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0, width or 235, 0, 32)
+    btn.Position = UDim2.new(0, x, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 25, 0)
+    btn.TextColor3 = Color3.fromRGB(255, 180, 50)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    applyOrangeBorder(btn)
+    return btn
+end
+
+-- [ GIAO DIỆN CHÍNH ]
+local mainScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+mainScreenGui.Name = "LamModFoxVTV_Hacker"
+mainScreenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", mainScreenGui)
+mainFrame.Size = UDim2.new(0, 520, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -260, 0.5, -210)
+mainFrame.BackgroundColor3 = BG_COLOR
+mainFrame.Active, mainFrame.Draggable = true, true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+applyOrangeBorder(mainFrame)
+
+local mainTitle = Instance.new("TextLabel", mainFrame)
+mainTitle.Size = UDim2.new(1, 0, 0, 40)
+mainTitle.BackgroundTransparency = 1
+mainTitle.TextColor3 = Color3.new(1, 1, 1)
+mainTitle.Text = "🦊 LÂM MOD FOX VTV - RIZZ EDITION 🦊"
+mainTitle.Font = Enum.Font.GothamBlack
+mainTitle.TextSize = 18
+
+local page1 = Instance.new("Frame", mainFrame)
+page1.Size = UDim2.new(1, 0, 1, -60)
+page1.Position = UDim2.new(0, 0, 0, 45)
+page1.BackgroundTransparency = 1
+
+-- === CỘT TRÁI ===
+local lX = 20
+createBtn(page1, lX, 0, "Fly GUI").MouseButton1Click:Connect(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))() end)
+createBtn(page1, lX, 40, "Music GUI").MouseButton1Click:Connect(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Roblox-HttpSpy/my-Garbage/refs/heads/main/FeMusicExploit.lua"))() end)
+createBtn(page1, lX, 80, "🏺 LỌ").MouseButton1Click:Connect(function() loadstring(game:HttpGet("https://pastefy.app/wa3v2Vgm/raw"))() end)
+createBtn(page1, lX, 120, "🔥 NO CLIP").MouseButton1Click:Connect(function() noclip = not noclip end)
+createBtn(page1, lX, 160, "🌀 WALK FLING").MouseButton1Click:Connect(function() walkFlingActive = not walkFlingActive end)
+
+local tpBtn = createBtn(page1, lX, 200, "🛸 TP CLICK: OFF")
+tpBtn.MouseButton1Click:Connect(function() 
+    tpClickActive = not tpClickActive 
+    tpBtn.Text = tpClickActive and "🛸 TP CLICK: ON" or "🛸 TP CLICK: OFF"
+end)
+
+local treeBtn = createBtn(page1, lX, 240, "🌳 TREE LAG: OFF")
+treeBtn.MouseButton1Click:Connect(function() 
+    treeLagActive = not treeLagActive 
+    treeBtn.Text = treeLagActive and "🌳 TREE LAG: ON" or "🌳 TREE LAG: OFF"
+end)
+
+local ragBtn = createBtn(page1, lX, 280, "🦴 RAGDOLL: OFF")
+ragBtn.MouseButton1Click:Connect(function()
+    ragdolled = not ragdolled
+    ragBtn.Text = ragdolled and "🦴 RAGDOLL: ON" or "🦴 RAGDOLL: OFF"
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.PlatformStand = ragdolled
+    end
+end)
+
+-- === CỘT PHẢI ===
+local rX = 265
+createBtn(page1, rX, 0, "🦊 TRUNG (RUN FOX V4)").MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/LAMDEPZAIHP/Fox-foxv-whitelish/main/Whitelish_scriptfox"))() 
+end)
+
+local searchBox = Instance.new("TextBox", page1)
+searchBox.Size = UDim2.new(0, 235, 0, 30)
+searchBox.Position = UDim2.new(0, rX, 0, 40)
+searchBox.BackgroundColor3 = Color3.fromRGB(50, 25, 0)
+searchBox.TextColor3 = Color3.new(1,1,1)
+searchBox.PlaceholderText = "🔍 Tìm tên..."
+searchBox.Text = ""
+Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 6)
+applyOrangeBorder(searchBox)
+
+local scrollFrame = Instance.new("ScrollingFrame", page1)
+scrollFrame.Size = UDim2.new(0, 235, 0, 230)
+scrollFrame.Position = UDim2.new(0, rX, 0, 80)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(30, 15, 0)
+Instance.new("UICorner", scrollFrame).CornerRadius = UDim.new(0, 6)
+applyOrangeBorder(scrollFrame)
+
+local listLayout = Instance.new("UIListLayout", scrollFrame)
+listLayout.Padding = UDim.new(0, 5)
+
+local function refreshPlayerList(filter)
+    for _, v in pairs(scrollFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            if not filter or string.find(string.lower(p.Name), string.lower(filter)) then
+                local btn = Instance.new("TextButton", scrollFrame)
+                btn.Size = UDim2.new(1, -10, 0, 30)
+                btn.BackgroundColor3 = Color3.fromRGB(80, 40, 0)
+                btn.Text = p.DisplayName
+                btn.TextColor3 = Color3.new(1,1,1)
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+                btn.MouseButton1Click:Connect(function()
+                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0)
+                    end
+                end)
+            end
+        end
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+end
+refreshPlayerList()
+searchBox:GetPropertyChangedSignal("Text"):Connect(function() refreshPlayerList(searchBox.Text) end)
+createBtn(page1, rX, 320, "🔄 LÀM MỚI").MouseButton1Click:Connect(function() refreshPlayerList(searchBox.Text) end)
+
+-- [ LOGIC HỆ THỐNG ]
+Mouse.Button1Down:Connect(function()
+    if tpClickActive and Mouse.Target then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0))
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+
+    if hum and root then
+        hum.WalkSpeed = _G.WalkSpeed
+        if noclip then for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end end
+        if walkFlingActive then
+            root.Velocity = Vector3.new(0, 100, 0)
+            root.RotVelocity = Vector3.new(0, 10000, 0)
+        end
+        if ragdolled then hum.PlatformStand = true else hum.PlatformStand = false end
+        if treeLagActive then
+            root.Velocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100))
+            root.CFrame = root.CFrame * CFrame.Angles(math.rad(math.random(-360,360)), math.rad(math.random(-360,360)), 0)
+        end
+    end
+end)
+
+local minBtn = createBtn(mainFrame, 485, 5, "-", 30)
+minBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    mainFrame:TweenSize(isMinimized and UDim2.new(0, 520, 0, 40) or UDim2.new(0, 520, 0, 420), "Out", "Quad", 0.3, true)
+    page1.Visible = not isMinimized
+    minBtn.Text = isMinimized and "+" or "-"
+end)
